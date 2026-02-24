@@ -191,7 +191,7 @@
 <script>
 // ══════════════════════════════════════════════
 // Wheel Tracker — Standalone Options Premium App
-// v3.0 — Feb 20, 2026
+// v3.1 — Feb 24, 2026
 // ══════════════════════════════════════════════
 
 const INITIAL_POSITIONS = [
@@ -199,6 +199,7 @@ const INITIAL_POSITIONS = [
   { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless — full premium kept" },
   { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh" },
   { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh" },
+  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.30, openDate: "2025-02-24", expDate: "2025-02-27", status: "open", notes: "CC $78 strike, $0.30 premium — HOOD at $71.95 when sold" },
 ];
 
 const STATUS = {
@@ -224,7 +225,16 @@ let calcState = { ticker: 'HOOD', strike: '', premium: '', days: 7, contracts: 1
 function loadPositions() {
   try {
     const saved = localStorage.getItem('wheel-tracker-positions');
-    if (saved) { positions = JSON.parse(saved); }
+    if (saved) {
+      positions = JSON.parse(saved);
+      // Merge any new INITIAL_POSITIONS that don't exist yet
+      INITIAL_POSITIONS.forEach(ip => {
+        if (!positions.find(p => p.id === ip.id)) {
+          positions.unshift(ip);
+        }
+      });
+      savePositions();
+    }
     else { positions = [...INITIAL_POSITIONS]; savePositions(); }
   } catch(e) { positions = [...INITIAL_POSITIONS]; }
 }
@@ -356,7 +366,7 @@ function render() {
     <div class="header">
       <div class="header-top">
         <span class="header-label">Options Premium Tracker</span>
-        <span class="version-badge">v3.0 — Live Prices</span>
+        <span class="version-badge">v3.1 — Feb 24</span>
       </div>
       <div class="header-row">
         <div class="header-title">
