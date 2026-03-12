@@ -768,11 +768,46 @@
   .mono { font-family: var(--mono); }
 
   @media (max-width: 640px) {
-    .calc-inputs-row { grid-template-columns: 1fr 1fr; }
-    .calc-results-row, .calc-results-row2 { grid-template-columns: 1fr 1fr; }
+    /* Page padding */
+    .header { padding: 16px 12px 0; }
+    body { overflow-x: hidden; }
+
+    /* Header */
+    .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .btn-primary { width: 100%; text-align: center; justify-content: center; }
+
+    /* Summary stats — stack to 1 col */
+    .summary-grid { grid-template-columns: 1fr; gap: 8px; }
+    .summary-cell { padding: 14px 16px; }
+    .summary-cell .value { font-size: 22px; }
+
+    /* Holdings metrics — 2 col */
     .metrics-grid { grid-template-columns: 1fr 1fr; }
-    .summary-grid { grid-template-columns: 1fr; }
-    .trade-header, .trade-row { grid-template-columns: 20px 60px 40px 60px 80px 60px 90px 1fr; }
+    .holding-card { padding: 16px; }
+
+    /* Calculator */
+    .calc-inputs-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .calc-results-row, .calc-results-row2 { grid-template-columns: 1fr 1fr; }
+    .calc-card { padding: 14px; }
+
+    /* Trade log filter bar */
+    .filter-bar { flex-wrap: wrap; gap: 6px; }
+    .filter-search { width: 100%; }
+
+    /* Trade table — hide grid header, rows become flex cards */
+    .trade-header { display: none; }
+    .trade-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      padding: 12px 14px;
+      position: relative;
+    }
+    .trade-row .trade-chevron { position: absolute; top: 14px; right: 14px; }
+
+    /* Modal */
+    .modal-box { padding: 20px 16px; margin: 12px; width: calc(100% - 24px) !important; max-width: none !important; }
+    .form-row { grid-template-columns: 1fr !important; }
   }
 </style>
 </head>
