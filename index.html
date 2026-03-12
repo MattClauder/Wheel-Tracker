@@ -937,7 +937,9 @@ setInterval(() => {
 function fmt(v) {
   const n = parseFloat(v);
   if (isNaN(n)) return '$0.00';
-  const abs = Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const parts = Math.abs(n).toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const abs = parts.join('.');
   return n < 0 ? `-$${abs}` : `$${abs}`;
 }
 function fmtDate(d) {
