@@ -1058,7 +1058,9 @@ function renderTop() {
     html += `</div></div></div>`;
   }
 
+  const _sy = window.scrollY;
   document.getElementById('app-top').innerHTML = html;
+  window.scrollTo(0, _sy);
 }
 
 // ── Calculator render ──
@@ -1111,14 +1113,17 @@ function renderCalc() {
   }
   html += `</div>`;
 
+  // Preserve scroll position — innerHTML swap can cause scroll jumps
+  const scrollY = window.scrollY;
   document.getElementById('app-calc').innerHTML = html;
+  window.scrollTo(0, scrollY);
 
   // Restore input values (without touching focus/cursor — inputs have no value attr so browser owns them)
   if (showCalc) {
     const fields = { 'calc-strike': 'strike', 'calc-premium': 'premium', 'calc-days': 'days', 'calc-contracts': 'contracts' };
     Object.entries(fields).forEach(([id, key]) => {
       const el = document.getElementById(id);
-      if (el && calcState[key]) el.value = calcState[key];
+      if (el && calcState[key] !== undefined && calcState[key] !== '') el.value = calcState[key];
     });
     // Render initial results
     updateCalcResults();
