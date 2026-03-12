@@ -824,8 +824,14 @@ function loadPositions() {
     const saved = localStorage.getItem('wheel-tracker-positions-v4');
     if (saved) {
       positions = JSON.parse(saved);
+      // Merge: add new positions AND update changed ones (status, premium, notes, etc.)
       INITIAL_POSITIONS.forEach(ip => {
-        if (!positions.find(p => p.id === ip.id)) positions.unshift(ip);
+        const idx = positions.findIndex(p => p.id === ip.id);
+        if (idx < 0) {
+          positions.unshift(ip); // new trade — add it
+        } else {
+          positions[idx] = { ...positions[idx], ...ip }; // update existing with latest data
+        }
       });
       savePositions();
     } else {
