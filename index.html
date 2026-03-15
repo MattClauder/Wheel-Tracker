@@ -885,6 +885,7 @@ async function loadPositions() {
     const decoded = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
     positions = JSON.parse(decoded);
     render();
+    fetchAllPrices();
   } catch(e) {
     console.warn('loadPositions fallback:', e.message);
     const saved = localStorage.getItem('wheel-tracker-positions-v4');
@@ -1673,9 +1674,7 @@ function confirmBuyback(id) {
 }
 
 // ── Init ──
-loadPositions();
-loadPositions();
-fetchAllPrices();
+loadPositions().then(function() { fetchAllPrices(); });
 </script>
 </body>
 </html>
