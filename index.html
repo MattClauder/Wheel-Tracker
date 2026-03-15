@@ -910,39 +910,36 @@ const SYNC_FILE  = 'index.html';
 async function syncToGitHub() {
   try {
     const ind = document.getElementById('sync-indicator');
-    if (ind) { ind.textContent = '↑ syncing'; ind.style.color = 'var(--text3)'; }
+    if (ind) { ind.textContent = '\u2191 syncing'; ind.style.color = 'var(--text3)'; }
 
-    // Fetch current file + SHA
     const metaRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/' + SYNC_FILE,
       { headers: { Authorization: 'token ' + SYNC_TOKEN } });
     const meta = await metaRes.json();
     const sha = meta.sha;
 
-    // Decode file content
     let fileText = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
 
-    // Rebuild INITIAL_POSITIONS from current positions array
-    const posLines = positions.map(p =>
-      '  { id: ' + JSON.stringify(p.id) +
-      ', type: ' + JSON.stringify(p.type) +
-      ', ticker: ' + JSON.stringify(p.ticker) +
-      ', sharesOrContracts: ' + p.sharesOrContracts +
-      ', sharePrice: ' + p.sharePrice +
-      ', strike: ' + p.strike +
-      ', premium: ' + p.premium +
-      ', openDate: ' + JSON.stringify(p.openDate) +
-      ', expDate: ' + JSON.stringify(p.expDate) +
-      ', status: ' + JSON.stringify(p.status) +
-      ', notes: ' + JSON.stringify(p.notes || '') + ' }'
-    ).join(',
-');
+    const posLines = positions.map(function(p) {
+      return '  { id: ' + JSON.stringify(p.id) +
+        ', type: ' + JSON.stringify(p.type) +
+        ', ticker: ' + JSON.stringify(p.ticker) +
+        ', sharesOrContracts: ' + p.sharesOrContracts +
+        ', sharePrice: ' + p.sharePrice +
+        ', strike: ' + p.strike +
+        ', premium: ' + p.premium +
+        ', openDate: ' + JSON.stringify(p.openDate) +
+        ', expDate: ' + JSON.stringify(p.expDate) +
+        ', status: ' + JSON.stringify(p.status) +
+        ', notes: ' + JSON.stringify(p.notes || '') + ' }';
+    }).join(',\n');
 
-    const newBlock = 'const INITIAL_POSITIONS = [
-' + posLines + '
-];';
-    fileText = fileText.replace(/const INITIAL_POSITIONS = \[[\s\S]*?\];/, newBlock);
+    const newBlock = 'const INITIAL_POSITIONS = [\n' + posLines + '\n];';
+    const marker1 = 'const INITIAL_POSITIONS = [';
+    const marker2 = '];';
+    const s = fileText.indexOf(marker1);
+    const e = fileText.indexOf(marker2, s) + marker2.length;
+    fileText = fileText.substring(0, s) + newBlock + fileText.substring(e);
 
-    // Encode and push
     const encoded = btoa(unescape(encodeURIComponent(fileText)));
     const pushRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/' + SYNC_FILE, {
       method: 'PUT',
@@ -951,16 +948,21 @@ async function syncToGitHub() {
     });
 
     if (pushRes.ok) {
-      if (ind) { ind.textContent = '✓ synced'; ind.style.color = 'var(--green)';
-        setTimeout(() => { if (ind) ind.textContent = ''; }, 3000); }
+      if (ind) {
+        ind.textContent = '\u2713 synced';
+        ind.style.color = 'var(--green)';
+        setTimeout(function() { if (ind) ind.textContent = ''; }, 3000);
+      }
     } else {
-      const err = await pushRes.json();
-      throw new Error(err.message || 'Push failed');
+      throw new Error('Push failed');
     }
   } catch(e) {
     const ind = document.getElementById('sync-indicator');
-    if (ind) { ind.textContent = '⚠ sync failed'; ind.style.color = 'var(--red)';
-      setTimeout(() => { if (ind) ind.textContent = ''; }, 4000); }
+    if (ind) {
+      ind.textContent = '\u26a0 sync failed';
+      ind.style.color = 'var(--red)';
+      setTimeout(function() { if (ind) ind.textContent = ''; }, 4000);
+    }
     console.error('Sync error:', e);
   }
 }
