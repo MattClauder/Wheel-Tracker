@@ -844,12 +844,12 @@
 // ══════════════════════════════════════════════
 
 const INITIAL_POSITIONS = [
-  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless — full premium kept · Expired worthless — full premium kept" },
   { id: "hood-csp-104", type: "cash_secured_put", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 104, premium: 1.15, openDate: "2025-01-27", expDate: "2025-01-30", status: "closed_assigned", notes: "Assigned Jan 30 — acquired 100 shares at $104" },
   { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless — full premium kept" },
   { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh" },
   { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh" },
-  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.3, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless — full premium kept" }
+  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.30, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless — full premium kept" },
+  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "open", notes: "" },
 ];
 
 const STATUS_MAP = {
@@ -875,30 +875,24 @@ let buybackInputId = null; // which position is showing buyback prompt
 let buybackInputVal = '';
 
 // ── Storage ──
-function loadPositions() {
+async function loadPositions() {
   try {
-    const saved = localStorage.getItem('wheel-tracker-positions-v4');
-    if (saved) {
-      positions = JSON.parse(saved);
-      // Merge: add new positions from INITIAL, and update ALL fields including status/notes
-      // (INITIAL_POSITIONS is now the source of truth — synced from app via GitHub API)
-      INITIAL_POSITIONS.forEach(ip => {
-        const idx = positions.findIndex(p => p.id === ip.id);
-        if (idx < 0) {
-          positions.unshift(ip); // new trade — add it
-        } else {
-          // INITIAL_POSITIONS wins completely — it was last written by the app
-          positions[idx] = { ...ip };
-        }
-      });
+    // Always fetch data.json fresh — bypasses CDN cache completely
+    const res = await fetch('https://raw.githubusercontent.com/MattClauder/Wheel-Tracker/main/data.json?t=' + Date.now(),
+      { cache: 'no-store' });
+    if (res.ok) {
+      positions = await res.json();
       savePositions();
+      render();
     } else {
-      // Migrate from old key
-      const old = localStorage.getItem('wheel-tracker-positions');
-      positions = old ? JSON.parse(old) : [...INITIAL_POSITIONS];
-      savePositions();
+      throw new Error('fetch failed');
     }
-  } catch(e) { positions = [...INITIAL_POSITIONS]; }
+  } catch(e) {
+    // Fallback to localStorage or INITIAL_POSITIONS
+    const saved = localStorage.getItem('wheel-tracker-positions-v4');
+    positions = saved ? JSON.parse(saved) : [...INITIAL_POSITIONS];
+    render();
+  }
 }
 function savePositions() {
   try { localStorage.setItem('wheel-tracker-positions-v4', JSON.stringify(positions)); } catch(e) {}
@@ -914,36 +908,18 @@ async function syncToGitHub() {
     const ind = document.getElementById('sync-indicator');
     if (ind) { ind.textContent = '\u2191 syncing'; ind.style.color = 'var(--text3)'; }
 
-    const metaRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/' + SYNC_FILE,
+    // Get current data.json SHA
+    const metaRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json',
       { headers: { Authorization: 'token ' + SYNC_TOKEN } });
     const meta = await metaRes.json();
     const sha = meta.sha;
 
-    let fileText = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
+    // Encode positions as JSON
+    const dataJson = JSON.stringify(positions, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(dataJson)));
 
-    const posLines = positions.map(function(p) {
-      return '  { id: ' + JSON.stringify(p.id) +
-        ', type: ' + JSON.stringify(p.type) +
-        ', ticker: ' + JSON.stringify(p.ticker) +
-        ', sharesOrContracts: ' + p.sharesOrContracts +
-        ', sharePrice: ' + p.sharePrice +
-        ', strike: ' + p.strike +
-        ', premium: ' + p.premium +
-        ', openDate: ' + JSON.stringify(p.openDate) +
-        ', expDate: ' + JSON.stringify(p.expDate) +
-        ', status: ' + JSON.stringify(p.status) +
-        ', notes: ' + JSON.stringify(p.notes || '') + ' }';
-    }).join(',\n');
-
-    const newBlock = 'const INITIAL_POSITIONS = [\n' + posLines + '\n];';
-    const marker1 = 'const INITIAL_POSITIONS = [';
-    const marker2 = '];';
-    const s = fileText.indexOf(marker1);
-    const e = fileText.indexOf(marker2, s) + marker2.length;
-    fileText = fileText.substring(0, s) + newBlock + fileText.substring(e);
-
-    const encoded = btoa(unescape(encodeURIComponent(fileText)));
-    const pushRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/' + SYNC_FILE, {
+    // Push to data.json
+    const pushRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json', {
       method: 'PUT',
       headers: { Authorization: 'token ' + SYNC_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Sync positions from app', content: encoded, sha: sha })
@@ -1681,7 +1657,7 @@ function confirmBuyback(id) {
 
 // ── Init ──
 loadPositions();
-render();
+loadPositions();
 fetchAllPrices();
 </script>
 </body>
