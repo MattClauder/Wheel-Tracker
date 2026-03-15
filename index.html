@@ -884,7 +884,6 @@ async function loadPositions() {
     const meta = await res.json();
     const decoded = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
     positions = JSON.parse(decoded);
-    savePositions();
     render();
   } catch(e) {
     console.warn('loadPositions fallback:', e.message);
@@ -922,10 +921,11 @@ async function syncToGitHub() {
     });
 
     if (pushRes.ok) {
-      if (ind) {
-        ind.textContent = '\u2713 synced';
-        ind.style.color = 'var(--green)';
-        setTimeout(function() { if (ind) ind.textContent = ''; }, 3000);
+      const indDone = document.getElementById('sync-indicator');
+      if (indDone) {
+        indDone.textContent = '\u2713 saved';
+        indDone.style.color = 'var(--green)';
+        setTimeout(function() { const i = document.getElementById('sync-indicator'); if (i) i.textContent = ''; }, 3000);
       }
     } else {
       const err = await pushRes.json();
@@ -1567,7 +1567,12 @@ function saveForm() {
   }
   savePositions();
   showForm = false; editingPos = null;
-  savePositions(); syncToGitHub();
+  savePositions();
+  const ind4 = document.getElementById('sync-indicator');
+  if (ind4) { ind4.textContent = '\u2191 saving\u2026'; ind4.style.color = 'var(--text3)'; }
+  syncToGitHub().then(function() {
+    renderTop(); renderLog(); renderModal();
+  });
   if (!livePrices[ticker]) fetchLivePrice(ticker).then(() => { renderTop(); renderCalc(); });
   renderTop(); renderLog(); renderModal();
 }
@@ -1582,7 +1587,12 @@ function reopenPosition(id) {
   if (!pos) return;
   pos.status = 'open';
   pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Reopened';
-  savePositions(); syncToGitHub(); renderTop(); renderLog();
+  savePositions();
+  const ind3 = document.getElementById('sync-indicator');
+  if (ind3) { ind3.textContent = '\u2191 saving\u2026'; ind3.style.color = 'var(--text3)'; }
+  syncToGitHub().then(function() {
+    renderTop(); renderLog();
+  });
 }
 
 function deletePosition(id) {
@@ -1624,7 +1634,12 @@ function closePosition(id, status) {
   } else if (status === 'closed_assigned') {
     pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Assigned at expiration';
   }
-  savePositions(); syncToGitHub(); renderTop(); renderLog();
+  savePositions();
+  const ind = document.getElementById('sync-indicator');
+  if (ind) { ind.textContent = '\u2191 saving\u2026'; ind.style.color = 'var(--text3)'; }
+  syncToGitHub().then(function() {
+    renderTop(); renderLog();
+  });
 }
 
 function showBuybackInput(id) {
@@ -1649,7 +1664,12 @@ function confirmBuyback(id) {
     pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Bought back';
   }
   buybackInputId = null; buybackInputVal = '';
-  savePositions(); syncToGitHub(); renderTop(); renderLog();
+  savePositions();
+  const ind2 = document.getElementById('sync-indicator');
+  if (ind2) { ind2.textContent = '\u2191 saving\u2026'; ind2.style.color = 'var(--text3)'; }
+  syncToGitHub().then(function() {
+    renderTop(); renderLog();
+  });
 }
 
 // ── Init ──
