@@ -901,24 +901,21 @@ function savePositions() {
 // ── GitHub Sync — pushes positions to repo so all devices see changes on refresh ──
 const SYNC_TOKEN = ['github_pat_11B6VX5YI0elC9BswqnFmD', 'rwHrJyu7sECTY0giAlQjUkCzCvWi7yFbxrMoSPBhJYxCGIRMJKOqcQa9rKV'].join('_');
 const SYNC_REPO  = 'MattClauder/Wheel-Tracker';
-const SYNC_FILE  = 'index.html';
+const SYNC_FILE  = 'data.json';
 
 async function syncToGitHub() {
   try {
     const ind = document.getElementById('sync-indicator');
     if (ind) { ind.textContent = '\u2191 syncing'; ind.style.color = 'var(--text3)'; }
 
-    // Get current data.json SHA
     const metaRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json',
       { headers: { Authorization: 'token ' + SYNC_TOKEN } });
     const meta = await metaRes.json();
     const sha = meta.sha;
 
-    // Encode positions as JSON
     const dataJson = JSON.stringify(positions, null, 2);
     const encoded = btoa(unescape(encodeURIComponent(dataJson)));
 
-    // Push to data.json
     const pushRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json', {
       method: 'PUT',
       headers: { Authorization: 'token ' + SYNC_TOKEN, 'Content-Type': 'application/json' },
@@ -932,7 +929,8 @@ async function syncToGitHub() {
         setTimeout(function() { if (ind) ind.textContent = ''; }, 3000);
       }
     } else {
-      throw new Error('Push failed');
+      const err = await pushRes.json();
+      throw new Error(err.message || 'Push failed');
     }
   } catch(e) {
     const ind = document.getElementById('sync-indicator');
