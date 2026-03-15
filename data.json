@@ -10,7 +10,7 @@
     "openDate": "2025-01-27",
     "expDate": "2025-01-30",
     "status": "closed_assigned",
-    "notes": "Assigned Jan 30 \u2014 acquired 100 shares at $104"
+    "notes": "Assigned Jan 30 — acquired 100 shares at $104"
   },
   {
     "id": "hood-cc-90",
@@ -23,7 +23,7 @@
     "openDate": "2025-02-03",
     "expDate": "2025-02-06",
     "status": "closed_expired",
-    "notes": "Expired worthless \u2014 full premium kept"
+    "notes": "Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-77",
@@ -36,7 +36,7 @@
     "openDate": "2025-02-12",
     "expDate": "2025-02-13",
     "status": "closed_buyback",
-    "notes": "Sold at $0.75, bought back Feb 13 at $0.57 \u2014 net premium $0.18/sh"
+    "notes": "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh"
   },
   {
     "id": "hood-cc-80",
@@ -49,7 +49,7 @@
     "openDate": "2025-02-17",
     "expDate": "2025-02-20",
     "status": "closed_buyback",
-    "notes": "Sold at $0.73, bought back Feb 20 at $0.06 \u2014 net premium $0.67/sh"
+    "notes": "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh"
   },
   {
     "id": "hood-cc-78",
@@ -62,7 +62,7 @@
     "openDate": "2025-02-24",
     "expDate": "2025-02-27",
     "status": "closed_expired",
-    "notes": "Expired worthless \u2014 full premium kept"
+    "notes": "Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-82",
@@ -74,7 +74,7 @@
     "premium": 0.46,
     "openDate": "2025-03-11",
     "expDate": "2025-03-13",
-    "status": "open",
-    "notes": ""
+    "status": "closed_expired",
+    "notes": "Expired worthless — full premium kept"
   }
 ]
