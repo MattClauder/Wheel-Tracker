@@ -877,18 +877,17 @@ let buybackInputVal = '';
 // ── Storage ──
 async function loadPositions() {
   try {
-    // Always fetch data.json fresh — bypasses CDN cache completely
-    const res = await fetch('https://raw.githubusercontent.com/MattClauder/Wheel-Tracker/main/data.json?t=' + Date.now(),
-      { cache: 'no-store' });
-    if (res.ok) {
-      positions = await res.json();
-      savePositions();
-      render();
-    } else {
-      throw new Error('fetch failed');
-    }
+    // Use GitHub API (not raw.githubusercontent.com) — always returns fresh data, no CDN cache
+    const res = await fetch('https://api.github.com/repos/MattClauder/Wheel-Tracker/contents/data.json',
+      { headers: { Authorization: 'token ' + SYNC_TOKEN }, cache: 'no-store' });
+    if (!res.ok) throw new Error('API fetch failed: ' + res.status);
+    const meta = await res.json();
+    const decoded = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
+    positions = JSON.parse(decoded);
+    savePositions();
+    render();
   } catch(e) {
-    // Fallback to localStorage or INITIAL_POSITIONS
+    console.warn('loadPositions fallback:', e.message);
     const saved = localStorage.getItem('wheel-tracker-positions-v4');
     positions = saved ? JSON.parse(saved) : [...INITIAL_POSITIONS];
     render();
