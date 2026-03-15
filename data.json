@@ -74,7 +74,7 @@
     "premium": 0.46,
     "openDate": "2025-03-11",
     "expDate": "2025-03-13",
-    "status": "open",
-    "notes": "Expired worthless — full premium kept · Reopened"
+    "status": "closed_expired",
+    "notes": "Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept"
   }
 ]
