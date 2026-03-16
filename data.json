@@ -75,6 +75,19 @@
     "openDate": "2025-03-11",
     "expDate": "2025-03-13",
     "status": "closed_expired",
-    "notes": "Expired worthless — full premium kept · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept · Reopened · Expired worthless — full premium kept"
+    "notes": "Expired worthless — full premium kept"
+  },
+  {
+    "id": "hood-cc-82-mar20",
+    "type": "covered_call",
+    "ticker": "HOOD",
+    "sharesOrContracts": 1,
+    "sharePrice": 104,
+    "strike": 82,
+    "premium": 0.32,
+    "openDate": "2026-03-16",
+    "expDate": "2026-03-20",
+    "status": "open",
+    "notes": "Weekly covered call — $82 strike"
   }
 ]
