@@ -87,7 +87,7 @@
     "premium": 0.32,
     "openDate": "2026-03-16",
     "expDate": "2026-03-20",
-    "status": "open",
-    "notes": "Weekly covered call — $82 strike"
+    "status": "closed_expired",
+    "notes": "Weekly covered call — $82 strike · Expired worthless — full premium kept"
   }
 ]
