@@ -10,7 +10,7 @@
     "openDate": "2026-01-27",
     "expDate": "2026-01-30",
     "status": "closed_assigned",
-    "notes": "Assigned Jan 30 \u2014 acquired 100 shares at $104"
+    "notes": "Assigned Jan 30 — acquired 100 shares at $104"
   },
   {
     "id": "hood-cc-90",
@@ -23,7 +23,7 @@
     "openDate": "2026-02-03",
     "expDate": "2026-02-06",
     "status": "closed_expired",
-    "notes": "Expired worthless \u2014 full premium kept"
+    "notes": "Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-77",
@@ -36,7 +36,7 @@
     "openDate": "2026-02-12",
     "expDate": "2026-02-13",
     "status": "closed_buyback",
-    "notes": "Sold at $0.75, bought back Feb 13 at $0.57 \u2014 net premium $0.18/sh"
+    "notes": "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh"
   },
   {
     "id": "hood-cc-80",
@@ -49,7 +49,7 @@
     "openDate": "2026-02-17",
     "expDate": "2026-02-20",
     "status": "closed_buyback",
-    "notes": "Sold at $0.73, bought back Feb 20 at $0.06 \u2014 net premium $0.67/sh"
+    "notes": "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh"
   },
   {
     "id": "hood-cc-78",
@@ -62,7 +62,7 @@
     "openDate": "2026-02-24",
     "expDate": "2026-02-27",
     "status": "closed_expired",
-    "notes": "Expired worthless \u2014 full premium kept"
+    "notes": "Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-82",
@@ -75,7 +75,7 @@
     "openDate": "2026-03-11",
     "expDate": "2026-03-13",
     "status": "closed_expired",
-    "notes": "Expired worthless \u2014 full premium kept"
+    "notes": "Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-82-mar20",
@@ -88,7 +88,7 @@
     "openDate": "2026-03-16",
     "expDate": "2026-03-20",
     "status": "closed_expired",
-    "notes": "Weekly covered call \u2014 $82 strike \u00b7 Expired worthless \u2014 full premium kept"
+    "notes": "Weekly covered call — $82 strike · Expired worthless — full premium kept"
   },
   {
     "id": "hood-cc-80-apr2",
@@ -100,7 +100,7 @@
     "premium": 0.58,
     "openDate": "2026-03-25",
     "expDate": "2026-04-02",
-    "status": "open",
-    "notes": "Weekly covered call \u2014 $80 strike \u00b7 Sold for $0.58"
+    "status": "closed_expired",
+    "notes": "Weekly covered call — $80 strike · Sold for $0.58 · Expired worthless — full premium kept"
   }
 ]
