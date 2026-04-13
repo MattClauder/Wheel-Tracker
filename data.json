@@ -102,5 +102,18 @@
     "expDate": "2026-04-02",
     "status": "closed_expired",
     "notes": "Weekly covered call — $80 strike · Sold for $0.58 · Expired worthless — full premium kept"
+  },
+  {
+    "id": "hood-cc-80-apr17",
+    "type": "covered_call",
+    "ticker": "HOOD",
+    "sharesOrContracts": 1,
+    "sharePrice": 104,
+    "strike": 80,
+    "premium": 0.44,
+    "openDate": "2026-04-11",
+    "expDate": "2026-04-17",
+    "status": "open",
+    "notes": "HOOD $80c 4/17 — sold for $0.44, High safety, before Q1 earnings 4/28"
   }
 ]
