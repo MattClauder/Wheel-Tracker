@@ -1002,11 +1002,15 @@ function getStats() {
   const tickers = [...new Set(positions.map(p => p.ticker))];
   const tickerData = {};
   positions.forEach(p => {
-    if (!tickerData[p.ticker]) tickerData[p.ticker] = { totalPremium: 0, sharePrice: 0, shares: 0 };
+    if (!tickerData[p.ticker]) tickerData[p.ticker] = { totalPremium: 0, sharePrice: 0, shares: 0, openCalls: [] };
     tickerData[p.ticker].totalPremium += p.premium * p.sharesOrContracts * 100;
     if (p.type === 'covered_call' || p.status === 'closed_assigned') {
       tickerData[p.ticker].sharePrice = p.sharePrice || p.strike;
       tickerData[p.ticker].shares = Math.max(tickerData[p.ticker].shares, p.sharesOrContracts * 100);
+    }
+    // Track OPEN short calls for mark-to-market liability calculation
+    if (p.type === 'covered_call' && p.status === 'open') {
+      tickerData[p.ticker].openCalls.push({ strike: p.strike, contracts: p.sharesOrContracts, premium: p.premium });
     }
   });
   const monthly = {};
@@ -1092,8 +1096,22 @@ function renderTop() {
       const cp = lp?.price || null;
       const shares = data.shares;
       const cb = data.sharePrice;
-      const unrealPL = cp && shares ? (cp - cb) * shares : null;
-      const unrealPct = cb > 0 && cp ? ((cp - cb) / cb * 100) : null;
+      const sharesPL = cp && shares ? (cp - cb) * shares : null;
+      // Open short calls create a mark-to-market liability when ITM.
+      // Intrinsic value = max(0, currentPrice − strike) × 100 × contracts, minus premium already collected.
+      // This represents the "locked in" loss on the option leg if held to expiration.
+      const openCalls = data.openCalls || [];
+      let callLiability = 0;
+      let hasOpenCalls = openCalls.length > 0;
+      if (cp && hasOpenCalls) {
+        openCalls.forEach(oc => {
+          const intrinsic = Math.max(0, cp - oc.strike);
+          // Liability = intrinsic value owed − premium we collected when we sold it
+          callLiability += (intrinsic - oc.premium) * oc.contracts * 100;
+        });
+      }
+      const unrealPL = sharesPL !== null ? sharesPL - callLiability : null;
+      const unrealPct = cb > 0 && cp && shares ? (unrealPL / (cb * shares) * 100) : null;
       const premPerSh = shares > 0 ? data.totalPremium / shares : 0;
       const netBasis = cb - premPerSh;
       const isDown = unrealPL < 0;
@@ -1129,7 +1147,7 @@ function renderTop() {
           <div class="metric-cell">
             <div class="label">Unrealized P&amp;L</div>
             <div class="value" style="color:${isDown?'var(--red)':'var(--green)'}">${unrealPL !== null ? (isDown?'':'+') + fmt(unrealPL) : '—'}</div>
-            <div class="sub" style="color:${isDown?'var(--red)':'var(--green)'}">${unrealPct !== null ? (isDown?'':'+') + unrealPct.toFixed(1) + '%' : ''}</div>
+            <div class="sub" style="color:${isDown?'var(--red)':'var(--green)'}">${unrealPct !== null ? (isDown?'':'+') + unrealPct.toFixed(1) + '%' : ''}${hasOpenCalls && callLiability > 0 ? ` · incl. ${fmt(-callLiability)} call liab.` : ''}</div>
           </div>
           <div class="metric-cell">
             <div class="label">Premium Collected</div>
