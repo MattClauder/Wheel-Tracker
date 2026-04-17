@@ -110,10 +110,10 @@
     "sharesOrContracts": 1,
     "sharePrice": 104,
     "strike": 80,
-    "premium": 0.44,
+    "premium": -12.83,
     "openDate": "2026-04-11",
     "expDate": "2026-04-17",
-    "status": "open",
-    "notes": "HOOD $80c 4/17 — sold for $0.44, High safety, before Q1 earnings 4/28"
+    "status": "closed_buyback",
+    "notes": "Sold @ $0.40, bought back @ $13.23 on 4/17 as HOOD ran through strike — net -$12.83/sh"
   }
 ]
