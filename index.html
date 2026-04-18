@@ -875,15 +875,15 @@ let buybackInputId = null; // which position is showing buyback prompt
 let buybackInputVal = '';
 
 // ── Storage ──
+// Data is synced via a Cloudflare Worker proxy. The GitHub token lives as a
+// Worker secret and is never exposed to the browser.
+const SYNC_WORKER_URL = 'https://wheel-tracker-sync.owacct22.workers.dev';
+
 async function loadPositions() {
   try {
-    // Use GitHub API (not raw.githubusercontent.com) — always returns fresh data, no CDN cache
-    const res = await fetch('https://api.github.com/repos/MattClauder/Wheel-Tracker/contents/data.json',
-      { headers: { Authorization: 'token ' + SYNC_TOKEN }, cache: 'no-store' });
-    if (!res.ok) throw new Error('API fetch failed: ' + res.status);
-    const meta = await res.json();
-    const decoded = decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))));
-    positions = JSON.parse(decoded);
+    const res = await fetch(SYNC_WORKER_URL + '/data', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Worker GET failed: ' + res.status);
+    positions = await res.json();
     render();
     fetchAllPrices();
   } catch(e) {
@@ -897,31 +897,19 @@ function savePositions() {
   try { localStorage.setItem('wheel-tracker-positions-v4', JSON.stringify(positions)); } catch(e) {}
 }
 
-// ── GitHub Sync — pushes positions to repo so all devices see changes on refresh ──
-const SYNC_TOKEN = ['github_pat_11B6VX5YI0elC9BswqnFmD', 'rwHrJyu7sECTY0giAlQjUkCzCvWi7yFbxrMoSPBhJYxCGIRMJKOqcQa9rKV'].join('_');
-const SYNC_REPO  = 'MattClauder/Wheel-Tracker';
-const SYNC_FILE  = 'data.json';
-
+// ── Sync to Cloudflare Worker (which proxies to GitHub) ──
 async function syncToGitHub() {
   try {
     const ind = document.getElementById('sync-indicator');
     if (ind) { ind.textContent = '\u2191 syncing'; ind.style.color = 'var(--text3)'; }
 
-    const metaRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json',
-      { headers: { Authorization: 'token ' + SYNC_TOKEN } });
-    const meta = await metaRes.json();
-    const sha = meta.sha;
-
-    const dataJson = JSON.stringify(positions, null, 2);
-    const encoded = btoa(unescape(encodeURIComponent(dataJson)));
-
-    const pushRes = await fetch('https://api.github.com/repos/' + SYNC_REPO + '/contents/data.json', {
+    const res = await fetch(SYNC_WORKER_URL + '/data', {
       method: 'PUT',
-      headers: { Authorization: 'token ' + SYNC_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Sync positions from app', content: encoded, sha: sha })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(positions),
     });
 
-    if (pushRes.ok) {
+    if (res.ok) {
       const indDone = document.getElementById('sync-indicator');
       if (indDone) {
         indDone.textContent = '\u2713 saved';
@@ -929,8 +917,7 @@ async function syncToGitHub() {
         setTimeout(function() { const i = document.getElementById('sync-indicator'); if (i) i.textContent = ''; }, 3000);
       }
     } else {
-      const err = await pushRes.json();
-      throw new Error(err.message || 'Push failed');
+      throw new Error('Worker PUT failed: ' + res.status);
     }
   } catch(e) {
     const ind = document.getElementById('sync-indicator');
