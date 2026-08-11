@@ -236,44 +236,53 @@
   }
 
   /* ── Chart ── */
-  .chart-wrap {
-    margin-bottom: 28px;
-  }
-  .chart-inner {
-    padding: 24px 24px 0;
-  }
-  .chart-bars {
+  .chart-wrap { margin-bottom: 28px; }
+  .chart-inner { padding: 22px 24px 14px; }
+  .chart-plot {
+    position: relative;
     display: flex;
-    align-items: flex-end;
-    gap: 16px;
-    height: 100px;
+    align-items: stretch;
+    gap: 14px;
+    height: 132px;
   }
-  .chart-bar-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-    gap: 6px;
+  .chart-zero {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed var(--border);
+    pointer-events: none;
+  }
+  .chart-col { position: relative; flex: 1; }
+  .chart-bar {
+    position: absolute;
+    left: 0; right: 0;
+    border-radius: 5px 5px 0 0;
+    background: linear-gradient(to top, rgba(58,125,68,0.22), rgba(58,125,68,0.08));
+    border: 1px solid rgba(58,125,68,0.30);
+    transition: height 0.4s ease;
+  }
+  .chart-bar.neg {
+    border-radius: 0 0 5px 5px;
+    background: linear-gradient(to bottom, rgba(185,64,64,0.22), rgba(185,64,64,0.08));
+    border-color: rgba(185,64,64,0.30);
   }
   .chart-bar-val {
-    font-size: 11px;
+    position: absolute;
+    left: -4px; right: -4px;
+    text-align: center;
+    font-size: 10px;
     font-family: var(--display);
     font-weight: 500;
     color: var(--green);
+    white-space: nowrap;
   }
-  .chart-bar {
-    width: 100%;
-    background: linear-gradient(to top, rgba(58,125,68,0.18), rgba(58,125,68,0.08));
-    border: 1px solid rgba(58,125,68,0.22);
-    border-radius: 6px 6px 0 0;
-    min-height: 4px;
-    transition: height 0.4s ease;
-  }
+  .chart-bar-val.neg { color: var(--red); }
+  .chart-labels { display: flex; gap: 14px; padding-top: 10px; }
   .chart-bar-label {
+    flex: 1;
+    text-align: center;
     font-size: 10px;
     font-family: var(--mono);
     color: var(--text3);
-    padding: 8px 0 16px;
   }
 
   /* ── Filters / Trade Log ── */
@@ -1081,17 +1090,31 @@ function renderTop() {
   if (monthKeys.length > 0) {
     html += `<div class="chart-wrap">
       <div class="section-label">Monthly Premium</div>
-      <div class="card chart-inner">
-        <div class="chart-bars">`;
-    const maxVal = Math.max(...Object.values(stats.monthly));
+      <div class="card chart-inner">`;
+    // Scale by the largest magnitude in either direction so a big loss month is
+    // drawn to scale instead of clamping to a stub. Zero line floats to suit.
+    const vals = monthKeys.map(m => stats.monthly[m]);
+    const posMax = Math.max(0, ...vals);
+    const negMax = Math.max(0, ...vals.map(v => -v));
+    const span = posMax + negMax;
+    const PLOT = 132, PAD = 16;
+    const usable = PLOT - PAD * (negMax > 0 ? 2 : 1);
+    const zeroY = span > 0 ? (negMax / span) * usable + (negMax > 0 ? PAD : 0) : PAD;
+    html += `<div class="chart-plot"><div class="chart-zero" style="bottom:${zeroY}px"></div>`;
     monthKeys.forEach(month => {
       const val = stats.monthly[month];
-      const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
-      html += `<div class="chart-bar-wrap">
-        <div class="chart-bar-val">${fmt(val)}</div>
-        <div class="chart-bar" style="height:${Math.max(pct,4)}%"></div>
-        <div class="chart-bar-label">${month.slice(5)}/${month.slice(2,4)}</div>
+      const h = span > 0 ? Math.max(Math.abs(val) / span * usable, 3) : 3;
+      const neg = val < 0;
+      const barPos = neg ? `top:${PLOT - zeroY}px` : `bottom:${zeroY}px`;
+      const valPos = neg ? `top:${PLOT - zeroY + h + 3}px` : `bottom:${zeroY + h + 3}px`;
+      html += `<div class="chart-col">
+        <div class="chart-bar${neg ? ' neg' : ''}" style="${barPos};height:${h}px"></div>
+        <div class="chart-bar-val${neg ? ' neg' : ''}" style="${valPos}">${fmt(val)}</div>
       </div>`;
+    });
+    html += `</div><div class="chart-labels">`;
+    monthKeys.forEach(month => {
+      html += `<div class="chart-bar-label">${month.slice(5)}/${month.slice(2,4)}</div>`;
     });
     html += `</div></div></div>`;
   }
