@@ -988,16 +988,71 @@ function getStats() {
   const closedCount = positions.filter(p => p.status !== 'open').length;
   const tickers = [...new Set(positions.map(p => p.ticker))];
   const tickerData = {};
-  positions.forEach(p => {
-    if (!tickerData[p.ticker]) tickerData[p.ticker] = { totalPremium: 0, sharePrice: 0, shares: 0, openCalls: [] };
-    tickerData[p.ticker].totalPremium += p.premium * p.sharesOrContracts * 100;
-    if (p.type === 'covered_call' || p.status === 'closed_assigned') {
-      tickerData[p.ticker].sharePrice = p.sharePrice || p.strike;
-      tickerData[p.ticker].shares = Math.max(tickerData[p.ticker].shares, p.sharesOrContracts * 100);
+  // Chronological pass so share lots accumulate and unwind in trade order.
+  const chrono = [...positions].sort((a, b) => (a.openDate || '').localeCompare(b.openDate || ''));
+  chrono.forEach(p => {
+    if (!tickerData[p.ticker]) tickerData[p.ticker] = {
+      totalPremium: 0, basisPremium: 0, sharePrice: 0, shares: 0,
+      lots: [], hadLots: false, legacySharePrice: 0, legacyShares: 0, openCalls: []
+    };
+    const td = tickerData[p.ticker];
+    const contracts = p.sharesOrContracts || 0;
+    const qty = contracts * 100;
+    const cash = p.premium * qty;
+
+    // Headline lifetime premium - every trade as booked.
+    td.totalPremium += cash;
+
+    // Premium applied to SHARE COST BASIS. Two exclusions, both deliberate:
+    //  1. status 'open' - premium is received but still at risk; not banked yet.
+    //  2. an unassigned cash-secured put - collateralized by cash, not stock, so
+    //     its premium is free cash and must NOT reduce the basis of shares held.
+    // Without these, selling a put silently lowers net basis and can green-light
+    // a covered call below true basis.
+    if (p.status !== 'open' && (p.type === 'covered_call' || p.status === 'closed_assigned')) {
+      td.basisPremium += cash;
     }
+
+    // Share lots: acquired when a CSP is assigned, released FIFO when a CC is assigned.
+    if (p.type === 'cash_secured_put' && p.status === 'closed_assigned') {
+      td.lots.push({ shares: qty, price: p.strike });
+      td.hadLots = true;
+    }
+    if (p.type === 'covered_call' && p.status === 'closed_assigned') {
+      let remove = qty;
+      while (remove > 0 && td.lots.length) {
+        const lot = td.lots[0];
+        const take = Math.min(remove, lot.shares);
+        lot.shares -= take;
+        remove -= take;
+        if (lot.shares <= 0) td.lots.shift();
+      }
+    }
+
+    // Fallback for shares acquired outside the wheel (bought outright).
+    if (p.type === 'covered_call' || p.status === 'closed_assigned') {
+      td.legacySharePrice = p.sharePrice || p.strike;
+      td.legacyShares = Math.max(td.legacyShares, qty);
+    }
+
     // Track OPEN short calls for mark-to-market liability calculation
     if (p.type === 'covered_call' && p.status === 'open') {
-      tickerData[p.ticker].openCalls.push({ strike: p.strike, contracts: p.sharesOrContracts, premium: p.premium });
+      td.openCalls.push({ strike: p.strike, contracts: contracts, premium: p.premium });
+    }
+  });
+  // Blend the lots into one cost basis; fall back to legacy single-price behaviour.
+  Object.values(tickerData).forEach(td => {
+    const lotShares = td.lots.reduce((s, l) => s + l.shares, 0);
+    if (td.hadLots) {
+      // Lot tracking applies. An empty lot list means genuinely flat (all called
+      // away) - do NOT fall back, or a closed-out position reads as still held.
+      td.shares = lotShares;
+      td.sharePrice = lotShares > 0
+        ? td.lots.reduce((s, l) => s + l.shares * l.price, 0) / lotShares
+        : 0;
+    } else {
+      td.shares = td.legacyShares;
+      td.sharePrice = td.legacySharePrice;
     }
   });
   const monthly = {};
@@ -1099,7 +1154,7 @@ function renderTop() {
       }
       const unrealPL = sharesPL !== null ? sharesPL - callLiability : null;
       const unrealPct = cb > 0 && cp && shares ? (unrealPL / (cb * shares) * 100) : null;
-      const premPerSh = shares > 0 ? data.totalPremium / shares : 0;
+      const premPerSh = shares > 0 ? data.basisPremium / shares : 0;
       const netBasis = cb - premPerSh;
       const isDown = unrealPL < 0;
       const stale = !priceTimestamps[ticker] || (Date.now() - priceTimestamps[ticker] > 120000);
@@ -1252,7 +1307,7 @@ function updateCalcResults() {
   const ti = stats.tickerData[calcState.ticker];
   const cp = livePrices[calcState.ticker]?.price || 0;
   const cb = ti?.sharePrice || 0;
-  const totalPremSoFar = ti?.totalPremium || 0;
+  const totalPremSoFar = ti?.basisPremium || 0;
   const sh = ti?.shares || 100;
   const pps = sh > 0 ? totalPremSoFar / sh : 0;
   const nb = cb - pps;
