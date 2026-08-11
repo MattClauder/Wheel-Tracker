@@ -54,7 +54,7 @@
   button { cursor: pointer; }
 
   /* ── Layout ── */
-  #app-top, #app-calc, #app-log, #app-modal {
+  #app-top, #app-log, #app-modal {
     max-width: 900px;
     margin: 0 auto;
     padding: 0 20px;
@@ -274,126 +274,6 @@
     font-family: var(--mono);
     color: var(--text3);
     padding: 8px 0 16px;
-  }
-
-  /* ── Calculator ── */
-  .calc-section {
-    margin-bottom: 28px;
-  }
-  .calc-toggle-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .calc-toggle-row:hover .section-label { color: var(--text2); }
-  .calc-chevron {
-    color: var(--text3);
-    transition: transform 0.2s;
-    flex-shrink: 0;
-  }
-  .calc-chevron.open { transform: rotate(90deg); }
-  .calc-hint {
-    font-size: 11px;
-    color: var(--text3);
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-  }
-
-  .calc-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-  .calc-inputs-row {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .calc-field {
-    padding: 14px 16px;
-    border-right: 1px solid var(--border);
-  }
-  .calc-field:last-child { border-right: none; }
-  .calc-field label {
-    display: block;
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 6px;
-  }
-  .calc-field input,
-  .calc-field select {
-    width: 100%;
-    border: none;
-    background: transparent;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: var(--display);
-    color: var(--text);
-    padding: 0;
-    appearance: none;
-  }
-  .calc-field input:focus,
-  .calc-field select:focus {
-    outline: none;
-  }
-  .calc-field input::placeholder {
-    color: var(--text3);
-    font-weight: 400;
-  }
-
-  .calc-results-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-  }
-  .calc-result-cell {
-    padding: 16px 18px;
-    border-right: 1px solid var(--border);
-  }
-  .calc-result-cell:last-child { border-right: none; }
-  .calc-result-cell .label {
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 6px;
-  }
-  .calc-result-cell .value {
-    font-size: 18px;
-    font-weight: 600;
-    font-family: var(--display);
-    letter-spacing: -0.01em;
-    margin-bottom: 2px;
-  }
-  .calc-result-cell .sub {
-    font-size: 10px;
-    font-family: var(--sans);
-    color: var(--text3);
-  }
-  .calc-results-row2 {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-top: 1px solid var(--border);
-    background: var(--surface2);
-  }
-  .calc-empty {
-    padding: 28px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text3);
-    font-family: var(--mono);
   }
 
   /* ── Filters / Trade Log ── */
@@ -806,11 +686,6 @@
     .metrics-grid { grid-template-columns: 1fr 1fr; }
     .holding-card { padding: 16px; }
 
-    /* Calculator */
-    .calc-inputs-row { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .calc-results-row, .calc-results-row2 { grid-template-columns: 1fr 1fr; }
-    .calc-card { padding: 14px; }
-
     /* Trade log filter bar */
     .filter-bar { flex-wrap: wrap; gap: 6px; }
     .filter-search { width: 100%; }
@@ -834,7 +709,6 @@
 </head>
 <body>
 <div id="app-top"></div>
-<div id="app-calc"></div>
 <div id="app-log"></div>
 <div id="app-modal"></div>
 
@@ -869,8 +743,6 @@ let expandedId = null;
 let showForm = false;
 let editingPos = null;
 let formType = 'covered_call';
-let showCalc = true;
-let calcState = { ticker: '', strike: '', premium: '', days: '7', contracts: '1' };
 let buybackInputId = null; // which position is showing buyback prompt
 let buybackInputVal = '';
 
@@ -955,7 +827,7 @@ async function fetchLivePrice(ticker) {
 async function fetchAllPrices() {
   const tickers = [...new Set(positions.map(p => p.ticker))];
   await Promise.all(tickers.map(t => fetchLivePrice(t)));
-  renderTop(); renderCalc();
+  renderTop();
 }
 setInterval(() => {
   const d = new Date(); const h = d.getHours(); const day = d.getDay();
@@ -1079,7 +951,6 @@ function getFiltered() {
 // ══════════════════════════════════════════════
 function render() {
   renderTop();
-  renderCalc();
   renderLog();
   renderModal();
 }
@@ -1087,7 +958,6 @@ function render() {
 function renderTop() {
   const stats = getStats();
   const tickerList = stats.tickers.length > 0 ? stats.tickers : ['HOOD'];
-  if (!calcState.ticker && tickerList.length > 0) calcState.ticker = tickerList[0];
 
   let html = '';
 
@@ -1233,149 +1103,6 @@ function renderTop() {
 
 // ── Calculator render ──
 // Full render: builds the whole calculator (called on init / toggle / ticker change)
-// calcSet (oninput): only updates the results panel — inputs are NEVER re-rendered while typing
-function renderCalc() {
-  const stats = getStats();
-  const tickerList = stats.tickers.length > 0 ? stats.tickers : ['HOOD'];
-  if (!calcState.ticker && tickerList.length > 0) calcState.ticker = tickerList[0];
-
-  let html = `<div class="calc-section">
-    <div class="calc-toggle-row" onclick="toggleCalc()">
-      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" class="calc-chevron ${showCalc?'open':''}"><path d="M6 4l4 4-4 4"/></svg>
-      <span class="section-label" style="margin-bottom:0">Trade Calculator</span>
-      <span class="calc-hint">— plug in an option to see your return</span>
-    </div>`;
-
-  if (showCalc) {
-    html += `<div class="calc-card">
-      <div class="calc-inputs-row">
-        <div class="calc-field">
-          <label>Ticker</label>
-          <select id="calc-ticker" onchange="calcSet('ticker',this.value,true)">
-            ${tickerList.map(t => `<option value="${esc(t)}" ${t===calcState.ticker?'selected':''}>${esc(t)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="calc-field">
-          <label>Strike</label>
-          <input id="calc-strike" type="number" step="0.5" placeholder="85.00"
-            oninput="calcSet('strike',this.value)">
-        </div>
-        <div class="calc-field">
-          <label>Premium / sh</label>
-          <input id="calc-premium" type="number" step="0.01" placeholder="0.50"
-            oninput="calcSet('premium',this.value)">
-        </div>
-        <div class="calc-field">
-          <label>Days to Exp</label>
-          <input id="calc-days" type="number" min="1" placeholder="7"
-            oninput="calcSet('days',this.value)">
-        </div>
-        <div class="calc-field">
-          <label>Contracts</label>
-          <input id="calc-contracts" type="number" min="1" placeholder="1"
-            oninput="calcSet('contracts',this.value)">
-        </div>
-      </div>
-      <div id="calc-results-panel"></div>
-    </div>`;
-  }
-  html += `</div>`;
-
-  // Preserve scroll position — innerHTML swap can cause scroll jumps
-  const scrollY = window.scrollY;
-  document.getElementById('app-calc').innerHTML = html;
-  window.scrollTo(0, scrollY);
-
-  // Restore input values (without touching focus/cursor — inputs have no value attr so browser owns them)
-  if (showCalc) {
-    const fields = { 'calc-strike': 'strike', 'calc-premium': 'premium', 'calc-days': 'days', 'calc-contracts': 'contracts' };
-    Object.entries(fields).forEach(([id, key]) => {
-      const el = document.getElementById(id);
-      if (el && calcState[key] !== undefined && calcState[key] !== '') el.value = calcState[key];
-    });
-    // Render initial results
-    updateCalcResults();
-  }
-}
-
-// Only touches #calc-results-panel — inputs are completely untouched, no scroll, no cursor issues
-function updateCalcResults() {
-  const panel = document.getElementById('calc-results-panel');
-  if (!panel) return;
-
-  const stats = getStats();
-  const ti = stats.tickerData[calcState.ticker];
-  const cp = livePrices[calcState.ticker]?.price || 0;
-  const cb = ti?.sharePrice || 0;
-  const totalPremSoFar = ti?.basisPremium || 0;
-  const sh = ti?.shares || 100;
-  const pps = sh > 0 ? totalPremSoFar / sh : 0;
-  const nb = cb - pps;
-  const strike = parseFloat(calcState.strike) || 0;
-  const prem = parseFloat(calcState.premium) || 0;
-  const days = parseInt(calcState.days) || 7;
-  const contracts = parseInt(calcState.contracts) || 1;
-  const totalPremNew = prem * contracts * 100;
-  const curVal = cp * contracts * 100;
-  const weeklyRet = curVal > 0 ? (totalPremNew / curVal * 100) : 0;
-  const annRet = days > 0 ? (weeklyRet * (365 / days)) : 0;
-  const dist = cp > 0 ? ((strike - cp) / cp * 100) : 0;
-  const weeksRecover = totalPremNew > 0 ? Math.ceil(Math.abs((cp - cb) * contracts * 100) / totalPremNew) : 0;
-  const newNB = cb - pps - (sh > 0 ? prem * contracts * 100 / sh : 0);
-  const ifAssigned = (strike - cb) * contracts * 100 + totalPremSoFar + totalPremNew;
-
-  if (strike > 0 && prem > 0) {
-    const distColor = dist > 5 ? 'var(--green)' : dist > 0 ? 'var(--amber)' : 'var(--red)';
-    const safeLabel = dist > 10 ? 'High' : dist > 5 ? 'Medium' : dist > 0 ? 'Low' : 'ITM!';
-    const safeColor = dist > 10 ? 'var(--green)' : dist > 5 ? 'var(--amber)' : 'var(--red)';
-    panel.innerHTML = `
-      <div class="calc-results-row">
-        <div class="calc-result-cell">
-          <div class="label">Collect</div>
-          <div class="value" style="color:var(--green)">${fmt(totalPremNew)}</div>
-          <div class="sub">${contracts} contract${contracts!==1?'s':''}</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">Return (${days}d)</div>
-          <div class="value" style="color:var(--green)">${weeklyRet.toFixed(2)}%</div>
-          <div class="sub">${annRet.toFixed(1)}% ann.</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">Distance</div>
-          <div class="value" style="color:${distColor}">${dist>=0?'+':''}${dist.toFixed(1)}%</div>
-          <div class="sub">${fmt(Math.abs(strike-cp))} away</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">Safety</div>
-          <div class="value" style="color:${safeColor}">${safeLabel}</div>
-        </div>
-      </div>
-      <div class="calc-results-row2">
-        <div class="calc-result-cell">
-          <div class="label">New Net Basis</div>
-          <div class="value" style="color:var(--blue)">${fmt(newNB)}</div>
-          <div class="sub">from ${fmt(nb)}</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">Wks to Recover</div>
-          <div class="value" style="color:var(--text2)">${weeksRecover > 0 ? '~'+weeksRecover+'wk' : '—'}</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">If Assigned P&amp;L</div>
-          <div class="value" style="color:${ifAssigned>=0?'var(--green)':'var(--red)'}">${ifAssigned>=0?'+':''}${fmt(ifAssigned)}</div>
-          <div class="sub">sold @ ${fmt(strike)}</div>
-        </div>
-        <div class="calc-result-cell">
-          <div class="label">Wks to Recoup</div>
-          <div class="value" style="color:var(--text2)">${weeksRecover>0?'~'+weeksRecover+'wk':'—'}</div>
-          <div class="sub">at this rate</div>
-        </div>
-      </div>`;
-  } else {
-    panel.innerHTML = `<div class="calc-empty">Enter a strike and premium to see your return breakdown</div>`;
-  }
-}
-
 // ── Trade Log render ──
 function renderLog() {
   const filtered = getFiltered();
@@ -1624,7 +1351,6 @@ function saveForm() {
     if (idx >= 0) positions[idx] = pos;
   } else {
     positions.unshift(pos);
-    if (!calcState.ticker) calcState.ticker = ticker;
   }
   savePositions();
   showForm = false; editingPos = null;
@@ -1634,7 +1360,7 @@ function saveForm() {
   syncToGitHub().then(function() {
     renderTop(); renderLog(); renderModal();
   });
-  if (!livePrices[ticker]) fetchLivePrice(ticker).then(() => { renderTop(); renderCalc(); });
+  if (!livePrices[ticker]) fetchLivePrice(ticker).then(() => { renderTop(); });
   renderTop(); renderLog(); renderModal();
 }
 
@@ -1672,19 +1398,6 @@ function toggleExpand(id) {
 
 function setFilter(t) { filterType = t; renderLog(); }
 function setTickerFilter(v) { filterTicker = v; renderLog(); }
-function toggleCalc() { showCalc = !showCalc; renderCalc(); }
-
-// Calculator — oninput calls calcSet which ONLY updates the results panel
-// The inputs themselves are never re-rendered while typing — cursor stays correct
-function calcSet(key, val, fullRender) {
-  calcState[key] = val;
-  if (fullRender) {
-    renderCalc(); // ticker change: need to rebuild select options
-  } else {
-    updateCalcResults(); // typing: only update the results div, never touch inputs
-  }
-}
-
 // Close position shortcuts
 function closePosition(id, status) {
   const pos = positions.find(p => p.id === id);
