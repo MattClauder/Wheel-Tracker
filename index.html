@@ -727,10 +727,10 @@
 // ══════════════════════════════════════════════
 
 const INITIAL_POSITIONS = [
-  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless — full premium kept · Expired worthless — full premium kept" },
-  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.3, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless — full premium kept" },
+  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless - full premium kept · Expired worthless - full premium kept" },
+  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.3, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless - full premium kept" },
   { id: "hood-csp-104", type: "cash_secured_put", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 104, premium: 1.15, openDate: "2025-01-27", expDate: "2025-01-30", status: "closed_assigned", notes: "Assigned Jan 30 — acquired 100 shares at $104" },
-  { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless — full premium kept" },
+  { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless - full premium kept" },
   { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh" },
   { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh" }
 ];
@@ -1176,7 +1176,7 @@ function renderLog() {
           <div style="font-weight:600;font-size:13px;font-family:var(--display)">${esc(pos.ticker)}</div>
           <div style="font-size:10px;font-weight:700;font-family:var(--sans);color:${isCC?'var(--blue)':'var(--purple)'}">${isCC?'CC':'CSP'}</div>
           <div style="font-size:13px;font-family:var(--display);color:var(--text2)">$${pos.strike}</div>
-          <div style="font-size:12px;font-family:var(--display);color:var(--text2)">$${pos.premium.toFixed(2)}/sh</div>
+          <div style="font-size:12px;font-family:var(--display);color:var(--text2)">${fmt(pos.premium)}/sh</div>
           <div style="font-size:12px;font-weight:600;font-family:var(--display);color:${sc(ror)}">${ror.toFixed(2)}%</div>
           <div><span class="badge ${st.cls}">${st.label}</span></div>
           <div style="font-size:11px;font-family:var(--sans);color:var(--text3)">${fmtDate(pos.openDate)}</div>
@@ -1397,7 +1397,7 @@ function reopenPosition(id) {
   const pos = positions.find(p => p.id === id);
   if (!pos) return;
   pos.status = 'open';
-  pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Reopened';
+  pos.notes = (pos.notes ? pos.notes + ' - ' : '') + 'Reopened';
   savePositions();
   const ind3 = document.getElementById('sync-indicator');
   if (ind3) { ind3.textContent = '\u2191 saving\u2026'; ind3.style.color = 'var(--text3)'; }
@@ -1428,9 +1428,9 @@ function closePosition(id, status) {
   if (!pos) return;
   pos.status = status;
   if (status === 'closed_expired') {
-    pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Expired worthless — full premium kept';
+    pos.notes = (pos.notes ? pos.notes + ' - ' : '') + 'Expired worthless - full premium kept';
   } else if (status === 'closed_assigned') {
-    pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Assigned at expiration';
+    pos.notes = (pos.notes ? pos.notes + ' - ' : '') + 'Assigned at expiration';
   }
   savePositions();
   const ind = document.getElementById('sync-indicator');
@@ -1457,9 +1457,9 @@ function confirmBuyback(id) {
   if (!isNaN(buybackPrice) && buybackPrice > 0) {
     const netPrem = pos.premium - buybackPrice;
     pos.premium = Math.max(0, netPrem);
-    pos.notes = (pos.notes ? pos.notes + ' · ' : '') + `Bought back @ $${buybackPrice.toFixed(2)}/sh — net $${Math.max(0,netPrem).toFixed(2)}/sh`;
+    pos.notes = (pos.notes ? pos.notes + ' - ' : '') + `Bought back @ $${buybackPrice.toFixed(2)}/sh - net $${Math.max(0,netPrem).toFixed(2)}/sh`;
   } else {
-    pos.notes = (pos.notes ? pos.notes + ' · ' : '') + 'Bought back';
+    pos.notes = (pos.notes ? pos.notes + ' - ' : '') + 'Bought back';
   }
   buybackInputId = null; buybackInputVal = '';
   savePositions();
