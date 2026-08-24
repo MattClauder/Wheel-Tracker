@@ -852,6 +852,7 @@ function fmt(v) {
   parts[0] = parts[0].replace(/(\d)(?=(\d{3})+$)/g, '$1,');
   return n < 0 ? `-$${parts.join('.')}` : `$${parts.join('.')}`;
 }
+function sc(v) { return parseFloat(v) < 0 ? 'var(--red)' : 'var(--green)'; }
 function fmtDate(d) {
   if (!d) return '—';
   return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
@@ -992,7 +993,7 @@ function renderTop() {
   html += `<div class="summary-grid">
     <div class="summary-cell">
       <div class="label">Total Premium</div>
-      <div class="value" style="color:var(--green)">${fmt(stats.totalPremium)}</div>
+      <div class="value" style="color:${sc(stats.totalPremium)}">${fmt(stats.totalPremium)}</div>
       <div class="sub">${positions.length} trade${positions.length !== 1 ? 's' : ''}</div>
     </div>
     <div class="summary-cell">
@@ -1072,8 +1073,8 @@ function renderTop() {
           </div>
           <div class="metric-cell">
             <div class="label">Premium Collected</div>
-            <div class="value" style="color:var(--green)">${fmt(data.totalPremium)}</div>
-            <div class="sub" style="color:var(--green)">${fmt(premPerSh)}/sh</div>
+            <div class="value" style="color:${sc(data.totalPremium)}">${fmt(data.totalPremium)}</div>
+            <div class="sub" style="color:${sc(premPerSh)}">${fmt(premPerSh)}/sh</div>
           </div>
           <div class="metric-cell">
             <div class="label">Net Basis</div>
@@ -1176,10 +1177,10 @@ function renderLog() {
           <div style="font-size:10px;font-weight:700;font-family:var(--sans);color:${isCC?'var(--blue)':'var(--purple)'}">${isCC?'CC':'CSP'}</div>
           <div style="font-size:13px;font-family:var(--display);color:var(--text2)">$${pos.strike}</div>
           <div style="font-size:12px;font-family:var(--display);color:var(--text2)">$${pos.premium.toFixed(2)}/sh</div>
-          <div style="font-size:12px;font-weight:600;font-family:var(--display);color:var(--green)">${ror.toFixed(2)}%</div>
+          <div style="font-size:12px;font-weight:600;font-family:var(--display);color:${sc(ror)}">${ror.toFixed(2)}%</div>
           <div><span class="badge ${st.cls}">${st.label}</span></div>
           <div style="font-size:11px;font-family:var(--sans);color:var(--text3)">${fmtDate(pos.openDate)}</div>
-          <div style="text-align:right;font-size:13px;font-weight:600;font-family:var(--display);color:var(--green)">+${fmt(totalPrem)}</div>
+          <div style="text-align:right;font-size:13px;font-weight:600;font-family:var(--display);color:${sc(totalPrem)}">${totalPrem<0?'':'+'}${fmt(totalPrem)}</div>
         </div>`;
 
       if (isExp) {
@@ -1187,12 +1188,12 @@ function renderLog() {
           <div class="ror-grid">
             <div class="ror-cell">
               <div class="label">Return on Risk</div>
-              <div class="value" style="color:var(--green)">${ror.toFixed(2)}%</div>
+              <div class="value" style="color:${sc(ror)}">${ror.toFixed(2)}%</div>
               <div class="sub">${fmt(totalPrem)} / ${fmt(capRisk)}</div>
             </div>
             <div class="ror-cell">
               <div class="label">Annualized</div>
-              <div class="value" style="color:var(--green)">${ann ? ann.toFixed(1)+'%' : '—'}</div>
+              <div class="value" style="color:${sc(ann)}">${ann ? ann.toFixed(1)+'%' : '—'}</div>
               <div class="sub">${daysHeld ? daysHeld+' day'+(daysHeld!==1?'s':'')+' held' : '—'}</div>
             </div>
             <div class="ror-cell">
