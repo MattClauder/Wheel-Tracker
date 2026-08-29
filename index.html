@@ -1054,8 +1054,11 @@ function renderTop() {
       //  premPerShBasis - only the premium actually applied to share cost basis; excludes open
       //                   legs and unassigned CSPs, so Net Basis stays conservative and a covered
       //                   call can't be green-lit below true basis. See the stats loop above.
-      const premPerShAll = shares > 0 ? data.totalPremium / shares : 0;
-      const premPerShBasis = shares > 0 ? data.basisPremium / shares : 0;
+      // A ticker with no shares has no meaningful per-share figure - blank those
+      // sub-labels rather than printing "$0.00/sh", which reads as "earned nothing".
+      const hasShares = shares > 0;
+      const premPerShAll = hasShares ? data.totalPremium / shares : 0;
+      const premPerShBasis = hasShares ? data.basisPremium / shares : 0;
       const netBasis = cb - premPerShBasis;
       const isDown = unrealPL < 0;
       const stale = !priceTimestamps[ticker] || (Date.now() - priceTimestamps[ticker] > 120000);
@@ -1095,12 +1098,12 @@ function renderTop() {
           <div class="metric-cell">
             <div class="label">Premium Collected</div>
             <div class="value" style="color:${sc(data.totalPremium)}">${fmt(data.totalPremium)}</div>
-            <div class="sub" style="color:${sc(premPerShAll)}">${fmt(premPerShAll)}/sh</div>
+            <div class="sub" style="color:${sc(premPerShAll)}">${hasShares ? fmt(premPerShAll) + '/sh' : ''}</div>
           </div>
           <div class="metric-cell">
             <div class="label">Net Basis</div>
             <div class="value" style="color:var(--blue)">${fmt(netBasis)}</div>
-            <div class="sub" style="color:var(--text3)">after ${fmt(premPerShBasis)}/sh banked</div>
+            <div class="sub" style="color:var(--text3)">${hasShares ? 'after ' + fmt(premPerShBasis) + '/sh banked' : ''}</div>
           </div>
         </div>
       </div>`;
