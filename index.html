@@ -727,12 +727,12 @@
 // ══════════════════════════════════════════════
 
 const INITIAL_POSITIONS = [
-  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless - full premium kept · Expired worthless - full premium kept" },
+  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless - full premium kept" },
   { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.3, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless - full premium kept" },
-  { id: "hood-csp-104", type: "cash_secured_put", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 104, premium: 1.15, openDate: "2025-01-27", expDate: "2025-01-30", status: "closed_assigned", notes: "Assigned Jan 30 — acquired 100 shares at $104" },
+  { id: "hood-csp-104", type: "cash_secured_put", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 104, premium: 1.15, openDate: "2025-01-27", expDate: "2025-01-30", status: "closed_assigned", notes: "Assigned Jan 30 - acquired 100 shares at $104" },
   { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless - full premium kept" },
-  { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 — net premium $0.18/sh" },
-  { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 — net premium $0.67/sh" }
+  { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 - net premium $0.18/sh" },
+  { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 - net premium $0.67/sh" }
 ];
 
 const STATUS_MAP = {
@@ -746,6 +746,7 @@ const STATUS_MAP = {
 let positions = [];
 let livePrices = {};
 let priceTimestamps = {};
+let priceErrors = {};
 let filterType = 'all';
 let filterTicker = '';
 let expandedId = null;
@@ -813,13 +814,20 @@ async function syncToGitHub() {
 
 // ── Live Prices ──
 async function fetchLivePrice(ticker) {
-  const proxies = [
-    `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + ticker + '?interval=1d&range=1d')}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + ticker + '?interval=1d&range=1d')}`,
+  const yahoo = 'https://query1.finance.yahoo.com/v8/finance/chart/' + ticker + '?interval=1d&range=1d';
+  // Primary: our own Cloudflare Worker (no third-party dependency, CORS already set).
+  // Fallback: allorigins, which is free but intermittently 500s.
+  const sources = [
+    SYNC_WORKER_URL + '/price?ticker=' + encodeURIComponent(ticker),
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahoo),
   ];
-  for (const url of proxies) {
+  for (const url of sources) {
     try {
-      const resp = await fetch(url);
+      const ctl = new AbortController();
+      const timer = setTimeout(function() { ctl.abort(); }, 8000);
+      let resp;
+      try { resp = await fetch(url, { signal: ctl.signal, cache: 'no-store' }); }
+      finally { clearTimeout(timer); }
       if (!resp.ok) continue;
       const data = await resp.json();
       const result = data.chart?.result?.[0];
@@ -828,10 +836,13 @@ async function fetchLivePrice(ticker) {
         const prevClose = chartPreviousClose || previousClose || price;
         livePrices[ticker] = { price, prevClose, change: price - prevClose, changePct: ((price - prevClose) / prevClose * 100) };
         priceTimestamps[ticker] = Date.now();
+        priceErrors[ticker] = false;
         return;
       }
     } catch(e) {}
   }
+  priceErrors[ticker] = true;
+  console.warn('price fetch failed for ' + ticker + ' (all sources)');
 }
 async function fetchAllPrices() {
   const tickers = [...new Set(positions.map(p => p.ticker))];
@@ -840,7 +851,11 @@ async function fetchAllPrices() {
 }
 setInterval(() => {
   const d = new Date(); const h = d.getHours(); const day = d.getDay();
-  if (day > 0 && day < 6 && h >= 9 && h <= 16) fetchAllPrices();
+  const marketHours = (day > 0 && day < 6 && h >= 9 && h <= 16);
+  // Retry whenever a ticker still has no price at all, even outside market hours -
+  // otherwise a single failed load leaves the card stuck until Monday.
+  const missing = [...new Set(positions.map(p => p.ticker))].some(t => !livePrices[t]);
+  if (marketHours || missing) fetchAllPrices();
 }, 60000);
 
 // ── Helpers ──
@@ -1057,7 +1072,7 @@ function renderTop() {
           </div>`;
       } else {
         html += `<div class="holding-price" style="color:var(--text3)">—</div>
-          <div class="holding-price-change" style="color:var(--text3);font-size:10px">fetching...</div>`;
+          <div class="holding-price-change" style="color:var(--text3);font-size:10px">${priceErrors[ticker] ? 'price unavailable - retrying' : 'fetching...'}</div>`;
       }
       html += `</div></div>
         <div class="metrics-grid">
