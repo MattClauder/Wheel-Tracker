@@ -1086,24 +1086,20 @@ function renderTop() {
       html += `</div></div>
         <div class="metrics-grid">
           <div class="metric-cell">
-            <div class="label">Cost Basis</div>
+            <div class="label">Paid</div>
             <div class="value">${fmt(cb)}</div>
-            <div class="sub" style="color:var(--text3)">per share</div>
           </div>
           <div class="metric-cell">
             <div class="label">Unrealized P&amp;L</div>
             <div class="value" style="color:${isDown?'var(--red)':'var(--green)'}">${unrealPL !== null ? (isDown?'':'+') + fmt(unrealPL) : '—'}</div>
-            <div class="sub" style="color:${isDown?'var(--red)':'var(--green)'}">${unrealPct !== null ? (isDown?'':'+') + unrealPct.toFixed(1) + '%' : ''}${hasOpenCalls && callLiability > 0 ? ` · incl. ${fmt(-callLiability)} call liab.` : ''}</div>
           </div>
           <div class="metric-cell">
             <div class="label">Premium Collected</div>
             <div class="value" style="color:${sc(data.totalPremium)}">${fmt(data.totalPremium)}</div>
-            <div class="sub" style="color:${sc(premPerShAll)}">${hasShares ? fmt(premPerShAll) + '/sh' : ''}</div>
           </div>
           <div class="metric-cell">
-            <div class="label">Net Basis</div>
+            <div class="label">Breakeven</div>
             <div class="value" style="color:var(--blue)">${fmt(netBasis)}</div>
-            <div class="sub" style="color:var(--text3)">${hasShares ? 'after ' + fmt(premPerShBasis) + '/sh banked' : ''}</div>
           </div>
         </div>
       </div>`;
