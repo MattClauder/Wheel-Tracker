@@ -900,13 +900,14 @@ function getStats() {
     // Headline lifetime premium - every trade as booked.
     td.totalPremium += cash;
 
-    // Premium applied to SHARE COST BASIS. Two exclusions, both deliberate:
-    //  1. status 'open' - premium is received but still at risk; not banked yet.
-    //  2. an unassigned cash-secured put - collateralized by cash, not stock, so
-    //     its premium is free cash and must NOT reduce the basis of shares held.
-    // Without these, selling a put silently lowers net basis and can green-light
-    // a covered call below true basis.
-    if (p.status !== 'open' && (p.type === 'covered_call' || p.status === 'closed_assigned')) {
+    // Premium applied to BREAKEVEN. One exclusion: status 'open' - premium is
+    // received but still at risk; not banked yet. Closed puts DO count (Matt's
+    // call, 2026-09-03): Breakeven = paid minus every dollar the ticker's wheel
+    // has banked, calls and puts alike, so it reads as true net cost and can be
+    // used to place both CSP and CC strikes. The shares-only variant (no
+    // unassigned puts) is no longer displayed; the CC strike-vs-basis guardrail
+    // is enforced in the screening notes instead.
+    if (p.status !== 'open') {
       td.basisPremium += cash;
     }
 
