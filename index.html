@@ -723,17 +723,8 @@
 
 <script>
 // ══════════════════════════════════════════════
-// Wheel Tracker v4.1
+// Wheel Tracker v4.2
 // ══════════════════════════════════════════════
-
-const INITIAL_POSITIONS = [
-  { id: "hood-cc-82", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 78.69, strike: 82, premium: 0.46, openDate: "2025-03-11", expDate: "2025-03-13", status: "closed_expired", notes: "Expired worthless - full premium kept" },
-  { id: "hood-cc-78", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 78, premium: 0.3, openDate: "2025-02-24", expDate: "2025-02-27", status: "closed_expired", notes: "Expired worthless - full premium kept" },
-  { id: "hood-csp-104", type: "cash_secured_put", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 104, premium: 1.15, openDate: "2025-01-27", expDate: "2025-01-30", status: "closed_assigned", notes: "Assigned Jan 30 - acquired 100 shares at $104" },
-  { id: "hood-cc-90", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 90, premium: 0.91, openDate: "2025-02-03", expDate: "2025-02-06", status: "closed_expired", notes: "Expired worthless - full premium kept" },
-  { id: "hood-cc-77", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 77, premium: 0.18, openDate: "2025-02-12", expDate: "2025-02-13", status: "closed_buyback", notes: "Sold at $0.75, bought back Feb 13 at $0.57 - net premium $0.18/sh" },
-  { id: "hood-cc-80", type: "covered_call", ticker: "HOOD", sharesOrContracts: 1, sharePrice: 104, strike: 80, premium: 0.67, openDate: "2025-02-17", expDate: "2025-02-20", status: "closed_buyback", notes: "Sold at $0.73, bought back Feb 20 at $0.06 - net premium $0.67/sh" }
-];
 
 const STATUS_MAP = {
   open:           { label: 'Open',        cls: 'badge-open' },
@@ -760,27 +751,57 @@ let buybackInputVal = '';
 // Data is synced via a Cloudflare Worker proxy. The GitHub token lives as a
 // Worker secret and is never exposed to the browser.
 const SYNC_WORKER_URL = 'https://wheel-tracker-sync.owacct22.workers.dev';
+const LOCAL_KEY = 'wheel-tracker-positions-v4';
+
+// 'loading' until the first read finishes, 'ok' only when this session's data came
+// from the Worker, 'offline' when the read failed and a local copy is on screen.
+// syncToGitHub() refuses to write unless this is 'ok': the Worker PUT replaces the
+// whole array, so saving a fallback copy would overwrite the real records.
+let syncState = 'loading';
+
+function readLocalCopy() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY));
+    return Array.isArray(saved) ? saved : [];
+  } catch(e) { return []; }
+}
 
 async function loadPositions() {
   try {
     const res = await fetch(SYNC_WORKER_URL + '/data', { cache: 'no-store' });
     if (!res.ok) throw new Error('Worker GET failed: ' + res.status);
-    positions = await res.json();
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('Worker GET did not return an array');
+    // An empty reply while this device holds entries is far more likely a bad read
+    // than a wiped tracker. Treat it as a failed read so nothing gets saved over it.
+    if (data.length === 0 && readLocalCopy().length > 0) throw new Error('Worker GET returned no entries');
+    positions = data;
+    syncState = 'ok';
+    savePositions(); // keep the offline copy current
     render();
     fetchAllPrices();
   } catch(e) {
     console.warn('loadPositions fallback:', e.message);
-    const saved = localStorage.getItem('wheel-tracker-positions-v4');
-    positions = saved ? JSON.parse(saved) : [...INITIAL_POSITIONS];
+    syncState = 'offline';
+    positions = readLocalCopy();
     render();
   }
 }
 function savePositions() {
-  try { localStorage.setItem('wheel-tracker-positions-v4', JSON.stringify(positions)); } catch(e) {}
+  // The local copy must stay the last data read from the Worker, so edits made
+  // while offline are never written to it.
+  if (syncState !== 'ok') return;
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(positions)); } catch(e) {}
 }
 
 // ── Sync to Cloudflare Worker (which proxies to GitHub) ──
 async function syncToGitHub() {
+  if (syncState !== 'ok') {
+    const ind = document.getElementById('sync-indicator');
+    if (ind) { ind.textContent = '⚠ not saved - reload'; ind.style.color = 'var(--red)'; }
+    console.error('Sync blocked: positions were not loaded from the Worker this session.');
+    return;
+  }
   try {
     const ind = document.getElementById('sync-indicator');
     if (ind) { ind.textContent = '\u2191 syncing'; ind.style.color = 'var(--text3)'; }
@@ -990,7 +1011,7 @@ function renderTop() {
   // ── Header ──
   html += `
   <div class="header">
-    <div class="header-eyebrow">Options Premium Tracker · v4.1</div>
+    <div class="header-eyebrow">Options Premium Tracker · v4.2</div>
     <div class="header-row">
       <div class="header-title">
         <span style="color:#5a7a52">Covered Calls</span>
@@ -1004,6 +1025,14 @@ function renderTop() {
       </button>
     </div>
   </div>`;
+
+  // ── Offline notice: shown only when the Worker read failed ──
+  if (syncState === 'offline') {
+    html += `
+  <div id="offline-notice" style="margin:0 0 14px;padding:10px 14px;border:1px solid var(--red);background:var(--red-bg);color:var(--red);font-size:13px;border-radius:8px;">
+    Sync unreachable. Showing the last copy saved on this device. Changes will NOT be saved. Reload to retry.
+  </div>`;
+  }
 
   // ── Summary ──
   html += `<div class="summary-grid">
